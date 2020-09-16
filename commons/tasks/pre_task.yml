@@ -1,0 +1,22 @@
+---
+- name: "Pacotes e dependencias"
+  block:
+    - name: "Atualiza o apt"
+      apt:
+        upgrade: dist
+        update_cache: yes
+        cache_valid_time: 3600
+    - name: "Baixa pacote unzip"
+      apt:
+        name: unzip
+
+- name: "Cria grupo de usuario"
+  group:
+    name: "{{ vault_grupo }}"
+
+- name: Cria um usuario Vault
+  user:
+    name: "{{ vault_user }}"
+    group: "{{ vault_grupo }}"
+    system: yes
+    state: present

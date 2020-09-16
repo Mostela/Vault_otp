@@ -1,0 +1,38 @@
+---
+- name: "Baixa o Vault Helper"
+  unarchive:
+    src: "{{ link_vault_helper }}"
+    dest: /usr/local/bin
+    owner: "{{ vault_user }}"
+    group: "{{ vault_grupo }}"
+    copy: no
+
+- name: "Cria diretorio de configuração"
+  file:
+    path: /etc/vault-ssh-helper.d/
+    state: directory
+
+- name: "Copia arquivo de configuração"
+  copy:
+    src:  ./config.hcl
+    dest: /etc/vault-ssh-helper.d/
+
+- name: "Adiciona ip Vault Server"
+  blockinfile:
+    path: /etc/vault-ssh-helper.d/config.hcl
+    block: |
+      vault_addr = "http://{{ip_server}}:8200"
+      allowed_cidr_list = "{{ ip_worker }}/32"
+- name: "Desabilita common-auth"
+  shell: sed -i 's/@include common-auth/# @include common-auth/' /etc/pam.d/sshd
+
+- name: "Log Vault"
+  shell: echo -e "\nauth requisite pam_exec.so quiet expose_authtok log=/var/log/vault-ssh.log /usr/local/bin/vault-ssh-helper -dev -config=/etc/vault-ssh-helper.d/config.hcl
+    auth optional pam_unix.so not_set_pass use_first_pass nodelay" | sudo tee -a /etc/pam.d/sshd
+
+- name: "Habilita ChallengeResponseAuthentication"
+  shell: sed -i 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/' /etc/ssh/sshd_config
+- name: "Reinicia SSHD"
+  systemd:
+    state: restarted
+    name: sshd

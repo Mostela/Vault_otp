@@ -1,0 +1,54 @@
+---
+- name: "Prepara server Vault"
+  become: true
+  hosts:
+    - vault_server
+    - "{{ ip_server }}"
+  vars_files:
+    - ./commons/vars/commons.yml
+  environment:
+    VAULT_ADDR: "http://127.0.0.1:8200"
+  pre_tasks:
+    - import_tasks: ./commons/tasks/pre_task.yml
+  tasks:
+    - import_tasks: ./commons/tasks/vault.yml
+    - name: "Habilita o SSH"
+      shell: vault secrets enable ssh
+      ignore_errors: yes
+
+    - name: "Cria otp_key_role"
+      shell: vault write ssh/roles/otp_key_role key_type=otp default_user=ubuntu cidr_list=0.0.0.0/0
+
+    - name: "Copia policy para a maquina"
+      copy:
+        src: ./teste.hcl
+        dest: ./
+
+    - name: "Cria a policy {{ police_name }}"
+      shell: "vault policy write {{ police_name }} ./teste.hcl"
+      ignore_errors: yes
+
+    - name: "Ativa o userpass do Vault"
+      shell: vault auth enable userpass
+      ignore_errors: yes
+
+  post_tasks:
+    - name: "Cria usuario userpass no Vault"
+      shell: vault write auth/userpass/users/{{user_name_vault}} password="{{ user_password_vault }}" policies="{{ police_name }}"
+
+- name: "Vault Helper para o cliente"
+  become: true
+  hosts:
+    - vault_worker
+    - "{{ ip_worker }}"
+  vars_files:
+    - ./commons/vars/commons.yml
+  environment:
+    VAULT_ADDR: "http://{{ ip_server }}:8200"
+  pre_tasks:
+    - import_tasks: ./commons/tasks/pre_task.yml
+  tasks:
+    - name: "Cria um usuario ubuntu"
+      user:
+        name: "ubuntu"
+    - import_tasks: ./commons/tasks/vault_helper.yml

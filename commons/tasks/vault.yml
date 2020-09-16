@@ -1,0 +1,33 @@
+---
+- name: "Instalando o Vault"
+  block:
+    - name: "Download Vault"
+      unarchive:
+        src: "{{ link_vault }}"
+        dest: /usr/local/bin
+        owner: "{{ vault_user }}"
+        group: "{{ vault_grupo }}"
+        copy: no
+    - name: "Define vault binary capabilities"
+      capabilities:
+        path: /usr/local/bin/vault
+        capability: cap_ipc_lock+ep
+        state: present
+
+    - name: "Copia o serviço do Vault para pasta"
+      copy:
+        src: ./services/vault.service
+        dest: /etc/systemd/system/
+        remote_src: no
+
+- name: "Reset serviços"
+  systemd:
+    daemon_reload: yes
+
+- name: "Inicia serviço"
+  systemd:
+    state: started
+    name: vault
+- name: "Usuario do token"
+  debug:
+    msg: "Seu usario para acesso é root"

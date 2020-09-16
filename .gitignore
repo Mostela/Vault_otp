@@ -1,0 +1,7 @@
+# Created by .ignore support plugin (hsz.mobi)
+.idea
+.terraform
+.vagrant
+terraform.tfstate
+terraform.tfstate.backup
+ubuntu-xenial-16.04-cloudimg-console.log
